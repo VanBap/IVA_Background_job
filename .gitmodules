@@ -1,4 +1,4 @@
-; [submodule "src/iva_common"]
-; 	path = src/iva_common
-; 	url = ../iva-common
-; 	branch = dev
+[submodule "src/iva_common"]
+	path = src/iva_common
+	url = ../iva-common
+	branch = dev
