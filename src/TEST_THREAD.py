@@ -1,12 +1,13 @@
-from concurrent.futures import ThreadPoolExecutor
-import time
+import sys
+a = "hello"
+print(sys.getrefcount(a))
+b = a
+c = a
+print(sys.getrefcount(a))
+c = 100000
+print(sys.getrefcount(a))
+del b
+print(sys.getrefcount(a))
 
-def worker(name):
-    print(f"{name} is working")
-    time.sleep(2)
-    print(f"{name} is done")
-
-with ThreadPoolExecutor(max_workers=2) as executor:
-    futures = [executor.submit(worker, f"Thread-{i+1}") for i in range(5)]
-
-print("Exiting Main Thread")
+print("====")
+print(sys.getrefcount(c))

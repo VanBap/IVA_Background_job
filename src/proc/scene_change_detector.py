@@ -13,6 +13,11 @@ from proc.extract_thumbnail import extract_thumbnail
 from proc.ai_match_scene_images import SceneMatcher
 from devices.serializers.camera_alert_serializer import CameraAlertFilterSerializer
 
+# === Thread ===
+import threading
+import concurrent.futures
+
+
 logger = logging.getLogger('app')
 
 # Capture current image
@@ -36,6 +41,29 @@ def check_key_points(camera):
     is_matched = matcher.match_scenes(img_1, img_2)
     return is_matched
 
+def process_camera(rule, camera):
+    # Xu ly tung camera trong 1 rule.
+    thread_name = threading.current_thread().name
+    print(f" === [{thread_name}] === Processing rule: {rule.id} - camera: {camera.id}")
+
+    # Neu goc Cam thay doi => Tao data trong bang Camera Alert
+    if check_key_points(camera) is False:
+        try:
+            data = {
+                'rule_id': rule.id,
+                'camera_id': camera.id,
+                'camera_name': camera.name,
+                'version_number': rule.current_version,
+            }
+            print(f"=== data: {data}")
+
+            camera_alert_service.create_alert(data)  # tao camera trong bang camera alert
+            print('Camera alert service created')
+        except AttributeError as e:
+            print(f"Loi tao camera alert: {e}")
+    else:
+        print(f"Goc camera {camera.id} khong thay doi")
+
 
 
 def process():
@@ -47,41 +75,32 @@ def process():
 
         current_time = now().time()
         print(f"=== Current time: {current_time}")
-        for rule in rules:
-            # Chi xu ly neu thoi gian hien tai anm trong [start, end] cu rule
-            if rule.start_time and rule.end_time and rule.start_time <= current_time <= rule.end_time:
-                cameras = rule.cameras.all()
-                # Duyet tung camera trong tung rule
-                for camera in cameras:
-                    print(f"=== rule: {rule} - camera: {camera}")
 
-                    # Neu goc Cam thay doi => Tao data trong bang Camera Alert
-                    if check_key_points(camera) is False:
-                        try:
+        # === Thread ===
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
 
-                            data = {
-                                'rule_id': rule.id,
-                                'camera_id': camera.id,
-                                'camera_name': camera.name,
-                                'version_number': rule.current_version,
-                            }
-                            print("=== data: ", data)
+            for rule in rules:
+                # Chi xu ly neu thoi gian hien tai anm trong [start, end] cu rule
+                if rule.start_time and rule.end_time and rule.start_time <= current_time <= rule.end_time:
+                    print(f"=== rule: {rule.id} HOAT DONG")
+                    cameras = rule.cameras.all()
+                    # Duyet tung camera trong tung rule
+                    for camera in cameras:
+                        # === Tao Thread de xu ly kiem tra goc Camera ===
+                        future = executor.submit(process_camera, rule, camera)
+                        futures.append(future)
 
-                            # serializer = CameraAlertFilterSerializer(data=data)
-                            # serializer.is_valid(raise_exception=True)
-                            # validated_data = serializer.validated_data
+                else:
+                    print(f"=== rule: {rule}: Chua den Thoi gian chi dinh")
 
-                            camera_alert_service.create_alert(data) # tao camera trong bang camera alert
-                            print('Camera alert service created')
-                        except AttributeError as e:
-                            print("Loi tao camera alert: ", e)
-                    else:
-                        print(f"Goc camera {camera.id} khong thay doi")
+            # Cho tat ca cac Thread hoan thanh
+            concurrent.futures.wait(futures)
+            print(" ")
+            print('Process rules finished')
+            print(" ")
 
-                # sleep some time
-                time.sleep(3)
-
-            else:
-                print(f"=== rule: {rule}: Chua den Thoi gian chi dinh")
+        # sleep some time
+        time.sleep(3)
 
 
