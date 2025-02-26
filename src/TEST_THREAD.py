@@ -1,13 +1,18 @@
-import sys
-a = "hello"
-print(sys.getrefcount(a))
-b = a
-c = a
-print(sys.getrefcount(a))
-c = 100000
-print(sys.getrefcount(a))
-del b
-print(sys.getrefcount(a))
+from concurrent.futures import ThreadPoolExecutor
+import requests
 
-print("====")
-print(sys.getrefcount(c))
+def fetch_url(url):
+    response = requests.get(url)
+    return response.status_code
+
+urls = [
+    "https://www.google.com",
+    "https://www.github.com",
+    "https://www.python.org",
+    "https://www.stackoverflow.com"
+]
+
+# Tạo một thread pool với 4 thread
+with ThreadPoolExecutor(max_workers=4) as executor:
+    results = list(executor.map(fetch_url, urls))
+    print(results)

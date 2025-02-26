@@ -7,5 +7,5 @@ if __name__ == '__main__':
     django.setup()
 
     from proc import scene_change_detector
-
-    scene_change_detector.process()
+    from proc import implement_threadpool_queue
+    implement_threadpool_queue.process()
