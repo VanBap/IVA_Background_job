@@ -8,4 +8,10 @@ if __name__ == '__main__':
 
     from proc import scene_change_detector
     from proc import implement_threadpool_queue
-    implement_threadpool_queue.process()
+    import TEST_THREAD
+
+    # Kafka
+    import kafka_producer
+    import kafka_consumer
+
+    kafka_producer.run()

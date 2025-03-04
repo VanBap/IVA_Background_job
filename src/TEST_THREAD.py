@@ -1,18 +1,20 @@
-from concurrent.futures import ThreadPoolExecutor
-import requests
+import threading
+import time
+import logging
 
-def fetch_url(url):
-    response = requests.get(url)
-    return response.status_code
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(message)s')
 
-urls = [
-    "https://www.google.com",
-    "https://www.github.com",
-    "https://www.python.org",
-    "https://www.stackoverflow.com"
-]
+def log_task():
+    while True:
+        logging.debug("Logging from daemon thread")
+        time.sleep(2)
 
-# Tạo một thread pool với 4 thread
-with ThreadPoolExecutor(max_workers=4) as executor:
-    results = list(executor.map(fetch_url, urls))
-    print(results)
+daemon_thread = threading.Thread(target=log_task)
+daemon_thread.daemon = False
+daemon_thread.start()
+
+for i in range(5):
+    logging.debug("Logging from main thread")
+    time.sleep(1)
+
+print("Main thread is exiting...")

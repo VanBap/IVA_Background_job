@@ -122,19 +122,17 @@ class MyThreadPool():
             self.threads.append(thread)
 
     def submit(self, fn, args): # add Task to Queue
-        """Thêm task vào queue.
-                func: function cần thực thi.
-                args: tuple chứa các tham số của function.
-        """
-
         self.task_queue.put((fn, args))
 
 
     def wait_for_completion(self):
+        # Wait for task is done.
+        # While it's done, thread is still running in background
         self.task_queue.join()
 
     def stop_threads(self):
-        # Stop all threads by adding None to Queue
+        # Stop all "background" threads by adding None to Queue
+
         for _ in self.threads:
             self.task_queue.put(None)
         for thread in self.threads:
@@ -196,7 +194,7 @@ def process():
         print('Process rules finished')
         print(" ")
 
-        # sleep some time
-        time.sleep(3)
+    # sleep some time
+    time.sleep(3)
 
 
