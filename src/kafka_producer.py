@@ -13,7 +13,7 @@ from devices.models.rule import Rule
 
 KAFKA_BROKER = 'localhost:10108'
 # KAFKA_BROKER = '172.19.0.3:9092'
-TOPIC_NAME = 'vannhk_test_030325'
+TOPIC_NAME = 'vannhk_test_050325'
 
 # Khoi tao Kafka Producer
 producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER,
@@ -35,12 +35,13 @@ def send_camera_task():
                 # Task dang JSON
                 task_data = {
                     "rule_id": rule.id,
-                    "camera_id": camera.id,
-                    "camera_name": camera.name,
                     "version_number": rule.current_version,
-                    "camera_url": camera.url,
-                    "background_url": camera.background_url,
-
+                    "cameras": {
+                        "camera_id": camera.id,
+                        "camera_name": camera.code_name,
+                        "camera_url": camera.url,
+                        "background_url": camera.background_url,
+                    }
                 }
                 key = str(int(camera.id) % 4).encode('utf-8')  # Partition
 

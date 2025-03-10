@@ -5,3 +5,6 @@ from .camera_alert import CameraAlert
 from .rule import Rule
 from .rule_camera import RuleCamera
 from .rule_version import RuleVersion
+
+from .prompt import Prompt
+from .vlm_model import VLMModel

@@ -73,7 +73,7 @@ def process_camera(rule, camera):
             data = {
                 'rule_id': rule.id,
                 'camera_id': camera.id,
-                'camera_name': camera.name,
+                'camera_name': camera.code_name,
                 'version_number': rule.current_version,
             }
             print(f"=== data: {data}")
@@ -146,7 +146,7 @@ def worker(rule, camera):
             data = {
                 'rule_id': rule.id,
                 'camera_id': camera.id,
-                'camera_name': camera.name,
+                'camera_name': camera.code_name,
                 'version_number': rule.current_version,
             }
 

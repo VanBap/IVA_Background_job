@@ -14,7 +14,7 @@ from proc.ai_match_scene_images import SceneMatcher
 
 # KAFKA_BROKER = 'kafka:9092'
 KAFKA_BROKER = 'localhost:10108'
-TOPIC_NAME = 'vannhk_test_030325'
+TOPIC_NAME = 'vannhk_test_050325'
 
 logger = logging.getLogger('app')
 
@@ -33,10 +33,12 @@ def check_key_points(task):
 
     snapshot_dir = '/home/vbd-vanhk-l1-ubuntu/work/'
     os.makedirs(snapshot_dir, exist_ok=True)
+    camera_data = task.get("cameras", {})
 
-    snapshot_path = os.path.join(snapshot_dir, f'camera_{task["camera_id"]}_snapshot.jpg')
+    snapshot_path = os.path.join(snapshot_dir, f'camera_{camera_data.get("camera_id")}_snapshot.jpg')
 
-    current_image = extract_thumbnail(task["camera_url"], snapshot_path)
+
+    current_image = extract_thumbnail(camera_data.get("camera_url"), snapshot_path)
 
     img_1 = cv2.imread(task["background_url"])
     img_2 = cv2.imread(current_image)
@@ -46,12 +48,13 @@ def check_key_points(task):
 
 def process_task(task):
     print(f"[Consumer] Processing task: {task}")
+    camera_data = task.get("cameras", {})
 
     if not check_key_points(task):
         alert_data = {
             "rule_id": task["rule_id"],
-            "camera_id": task["camera_id"],
-            'camera_name': task["camera_name"],
+            "camera_id": camera_data.get("camera_id"),
+            'camera_name': camera_data.get("camera_name"),
             "version_number": task["version_number"],
         }
         camera_alert_service.create_alert(alert_data)

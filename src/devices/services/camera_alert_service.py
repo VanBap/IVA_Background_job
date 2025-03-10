@@ -35,6 +35,13 @@ def create_alert(validated_data):
 
     # create alert camera
     # validated_data['camera'] = camera
-    validated_data['type'] = "scence change"
-    validated_data['desc'] = "Camera Alert: Goc camera thay doi"
+    if validated_data.get('rule_type') == 0:
+        validated_data['type'] = "Scence change"
+        validated_data['desc'] = "Camera Alert: Goc camera thay doi"
+
+    if validated_data.get('rule_type') == 1:
+        validated_data['type'] = "Prompt-based Detection"
+        validated_data['desc'] = validated_data.get('desc') + " Answer: Yes"
+
+    validated_data.pop('rule_type')
     return model_create(CameraAlert, validated_data)
