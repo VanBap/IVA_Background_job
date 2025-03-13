@@ -13,6 +13,8 @@ class CameraAlert(BaseSimpleModel):
     type = models.CharField(max_length=255, default='')
     desc = models.CharField(max_length=255, default='')
 
+    details = models.JSONField(null=True, default=None)
+
     class Meta:
         db_table = 'camera_alert'
         managed = True
