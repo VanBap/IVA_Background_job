@@ -67,9 +67,9 @@ def process_camera(rule, camera):
 
 
 
-def process():
-    while True:
+def process_rule_scene_change():
 
+    while True:
         print('Loading list of rules')
         rules = Rule.objects.all()
         print('Process rules')
@@ -77,14 +77,16 @@ def process():
         current_time = now().time()
         print(f"=== Current time: {current_time}")
 
-        # === Thread ===
+        # === Thread for Type 0 ===
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-
             for rule in rules:
                 # Chi xu ly neu thoi gian hien tai anm trong [start, end] cu rule
                 if rule.start_time and rule.end_time and rule.start_time <= current_time <= rule.end_time:
-                    print(f"=== rule: {rule.id} HOAT DONG")
+                    print(f"=== [Processing] Rule_type {rule.type}")
+                    print(f"=== [Processing] Rule_id {rule.id}")
+                    print(f"=== [Processing] Checking at time: {current_time}")
+
                     cameras = rule.cameras.all()
                     # Duyet tung camera trong tung rule
                     for camera in cameras:
@@ -103,5 +105,6 @@ def process():
 
         # sleep some time
         time.sleep(3)
+
 
 

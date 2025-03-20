@@ -8,3 +8,5 @@ from .rule_version import RuleVersion
 
 from .prompt import Prompt
 from .vlm_model import VLMModel
+
+from .test_image import TestImage

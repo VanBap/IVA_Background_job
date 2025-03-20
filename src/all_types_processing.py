@@ -1,80 +1,48 @@
 import os
 import django
-
+import argparse
+import json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-import time
 import logging
-from django.utils.timezone import now
 
-from devices.models.camera import Camera
-from devices.models.rule import Rule
-from devices.services import camera_alert_service
-
-# === Thread ===
-import threading
-import concurrent.futures
-
-# === Rule type 0 (Scene Change) ===
-from proc.scene_change_detector import process_camera
-
-# === Rule type 1 (Prompt-based) ===
-from proc.rule_prompt_proc import process_vlm_rule
+from proc import scene_change_detector, rule_prompt_detector, all_rules_detector
 
 logger = logging.getLogger('app')
 
+# === GET TYPE OPTION 3 (ENV PARA) ===
+# RULE_TYPE = os.getenv('RULE_TYPE')
+
 
 if __name__ == "__main__":
-    print("Which Type do you want to process? ")
-    print("0: Scence change detector")
-    print("1: Prompt-based detection")
-    user_input = int(input("Enter your choice: "))
 
-    print('Loading list of rules')
-    rules = Rule.objects.all()
+    # === GET TYPE OPTION 1 (JSON File) ===
+    with open("/home/vbd-vanhk-l1-ubuntu/PycharmProjects/PythonProject/src/config.json") as f:
+        config = json.load(f)
 
-    if user_input == 0:
-        while True:
+    RULE_TYPE = config["rule_type"]["type_1"]
+    # ========================================
 
-            current_time = now().time()
-            print(f"=== Current time: {current_time}")
+    # # === GET TYPE OPTION 2 (command line argument) ===
+    # parser = argparse.ArgumentParser(description='Pass in Rule type')
+    # parser.add_argument("--rule_type", type=str, required=True)
+    # args = parser.parse_args()
+    #
+    # RULE_TYPE = args.rule_type
+    # # ========================================
 
-            # === Thread for Type 0 ===
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                futures = []
-                for rule in rules:
-                    # Chi xu ly neu thoi gian hien tai anm trong [start, end] cu rule
-                    if rule.start_time and rule.end_time and rule.start_time <= current_time <= rule.end_time:
-                        print(f"=== [Processing] Rule_type {rule.type}")
-                        print(f"=== [Processing] Rule_id {rule.id}")
-                        print(f"=== [Processing] Checking at time: {current_time}")
-
-                        cameras = rule.cameras.all()
-                        # Duyet tung camera trong tung rule
-                        for camera in cameras:
-                            # === Tao Thread de xu ly kiem tra goc Camera ===
-                            future = executor.submit(process_camera, rule, camera)
-                            futures.append(future)
-
-            # Cho tat ca cac Thread hoan thanh
-            concurrent.futures.wait(futures)
-            print(" ")
-            print('Process rules finished')
-            print(" ")
-            # sleep some time
-            time.sleep(3)
+    if RULE_TYPE == '0':
+        print("=== [Processing] RULE TYPE 0 ONLY")
+        scene_change_detector.process_rule_scene_change()
 
     # Type == 1
-    elif user_input == 1:
-        for rule in rules:
-            print(f"=== [Processing] Rule_type {rule.type}")
-            print(f"=== [Processing] rule_id: {rule.id}")
-            cameras = rule.cameras.all()
-            for camera in cameras:
-                print(f"==== [Processing] camera_id: {camera.id}")
-                process_vlm_rule(rule, camera)
+    elif RULE_TYPE == '1':
+        print("=== [Processing] RULE TYPE 1 ONLY")
+        rule_prompt_detector.process_rule_prompt_based()
 
-
+    elif RULE_TYPE == 'all':
+        print("=== [Processing] RULE ALL TYPES")
+        all_rules_detector.process_all_rules()
 
 
