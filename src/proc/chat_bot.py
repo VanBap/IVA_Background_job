@@ -12,7 +12,7 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
-OPEN_API_KEY = "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"
+OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 
 # === DATA EMBEDDING + VECTOR DB ===
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=OPEN_API_KEY,base_url="https://models.inference.ai.azure.com")
