@@ -61,24 +61,6 @@ class OutputSchema(BM):
     explain: str = Field(description="Provide a logical and clear explanation that directly supports the final_answer. ")
 # ================================
 
-# === PydanticOutputParser =======
-from langchain_core.output_parsers import PydanticOutputParser
-parser = PydanticOutputParser(pydantic_object=OutputSchema)
-# ================================
-
-# ==== Reponse Schema ============
-from langchain.output_parsers import ResponseSchema
-from langchain.output_parsers import StructuredOutputParser
-
-final_answer = ResponseSchema(name="final_answer",
-                              description="If the answer implies 'yes', then final_answer is true; otherwise, final_answer is false"
-                              )
-
-explain = ResponseSchema(name="explain",
-                         description="Provide a logical and clear explanation."
-                         )
-response_schemas = [final_answer, explain]
-
 # VLM process
 def process_vlm_rule(rule, camera):
 
@@ -118,14 +100,9 @@ def process_vlm_rule(rule, camera):
                      base_url=rule.vlm_model.url,
                      temperature=0.0)
 
-    # UPDATE
-    # output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    # format_instructions = output_parser.get_format_instructions()
-    # print(f"Format instructions: {format_instructions}")
-    # formatted_prompt = f"{format_instructions}\n\nUser query:\n{rule.prompt.content}"
-
     prompt_C3 = (
-            "Answer the question strictly in the following JSON format:\n"
+
+            "Respond in valid JSON format without markdown or backticks:\n"
             "{\n"
             '  "final_answer": <true/false>,\n'
             '  "explain": "<short explanation>"\n'
@@ -142,8 +119,6 @@ def process_vlm_rule(rule, camera):
             ]
         ),
     ]
-    # print(f"Len messages: {len(messages)}")
-    # print(f"Messages: {messages}")
 
     # === CACH 1+2+vannhk ===
     # structured_llm = llm.with_structured_output(response_schema.yes_or_no_schema)
@@ -152,6 +127,7 @@ def process_vlm_rule(rule, camera):
     # === CACH 3 ===
     raw_response = llm.invoke(messages)
     response_text = raw_response.content
+    print("Raw response from model:", response_text)
     response_data = json.loads(response_text)
     print(f"Response data: {response_data}")
 
