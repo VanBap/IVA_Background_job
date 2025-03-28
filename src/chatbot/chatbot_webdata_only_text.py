@@ -22,7 +22,7 @@ from langchain_community.vectorstores import FAISS
 import chatbot_crawl_data as crawl_data
 
 VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH")
-OPEN_API_KEY = "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"
+OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 
 # === CHECK IF VECTOR DB EXISTED ===
 if os.path.exists(VECTOR_DB_PATH):
