@@ -11,6 +11,10 @@ from langchain_core.vectorstores import InMemoryVectorStore
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
+from langchain.embeddings import HuggingFaceEmbeddings
+
+# === Vannhk ===
+import chatbot_crawl_data as crawl_data
 
 OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 
@@ -18,27 +22,23 @@ OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 embeddings = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=OPEN_API_KEY,base_url="https://models.inference.ai.azure.com")
 vector_store = InMemoryVectorStore(embeddings)
 
-# === Load and chuck contents of the blog ===
-loader = WebBaseLoader(
-    web_paths=("https://vi.wikipedia.org/wiki/T%E1%BA%ADp_%C4%91o%C3%A0n_Vingroup",),
-    bs_kwargs=dict(
-        parse_only=bs4.SoupStrainer(
-            # class_=("post-content", "post-title", "post-header")
-            class_=("mw-content-container")
-        )
-    ),
-)
 
-docs = loader.load()
+# URL của trang hỗ trợ Sapo Retail
+base_url = "https://support.sapo.vn/sapo-retail"
+article_links = crawl_data.get_article_links(base_url)
+docs = crawl_data.load_articles(article_links)
+
+
+# ================= KET THUC NGAY 26/03/2025 =====================================
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
-# print(f"all splits: {len(all_splits)}")
-# print("=============================")
+print(f"[SPLIT] All splits: {len(all_splits)}")
+print("=============================")
 
 # === Index chunks ===
 _ = vector_store.add_documents(documents=all_splits)
-
+print("[Store in Vector DB] Done")
 # === Define prompt for question-answering ===
 # # C1
 # prompt = hub.pull("rlm/rag-prompt")
@@ -46,7 +46,6 @@ _ = vector_store.add_documents(documents=all_splits)
 template = """Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 Use three sentences maximum and keep the answer as concise as possible.
-Always say "thanks for asking!" at the end of the answer.
 
 {context}
 
@@ -71,15 +70,9 @@ class State(TypedDict):
 def retrieve(state: State):
     retrieved_docs = vector_store.similarity_search(state["question"])
     # retrieved_docs = vector_store.similarity_search("question")
-    print(f"retrieved_docs: {retrieved_docs}")
-    print("======================================")
     return {"context": retrieved_docs}
 
 def generate(state: State):
-
-    # for doc in state["context"]:
-    #     print(f"doc: {doc.page_content}")
-    #     print("===================================================================")
 
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
 
@@ -92,7 +85,7 @@ graph_builder = StateGraph(State).add_sequence([retrieve, generate])
 graph_builder.add_edge(START, "retrieve")
 graph = graph_builder.compile()
 
-response = graph.invoke({"question": "Vingroup là gì ?"})
+response = graph.invoke({"question": "Hướng dẫn tôi quản lý đơn hàng"})
 # print(f"response: {response}")
 print(f"Context: {response['context']}")
 print(f"answer: {response['answer']}")
