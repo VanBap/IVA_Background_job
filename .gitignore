@@ -16,3 +16,6 @@ api_logs
 tmp
 
 .idea
+
+# Data
+data
