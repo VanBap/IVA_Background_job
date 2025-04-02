@@ -20,3 +20,24 @@
 #      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 #    ports:
 #      - "9093:9092"
+
+version: '3.5'
+
+services:
+  milvus:
+    image: milvusdb/milvus:latest
+    container_name: milvus
+    restart: always
+    ports:
+      - "19530:19530"
+      - "9191:9091"
+    environment:
+      - ETCD_USE_EMBED=true
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MILVUS_LOG_LEVEL=debug
+    command: ["milvus", "run", "standalone"]
+
+volumes:
+  milvus_data:
+

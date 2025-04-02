@@ -1,18 +1,11 @@
-import json
 import os
-from dotenv import load_dotenv
-import bs4
-from langchain import hub, requests
-from bs4 import BeautifulSoup
 
-from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START, StateGraph
 from typing_extensions import List, TypedDict
-from langchain_core.vectorstores import InMemoryVectorStore
 
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import pickle
@@ -20,25 +13,45 @@ from langchain_community.vectorstores import FAISS
 
 # === Vannhk ===
 import chatbot_crawl_data as crawl_data
+from splitter import SapoSupportChunker
 
-VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH")
+VECTOR_DB_DEMO_PATH = os.getenv("VECTOR_DB_DEMO_PATH")
 OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 
 # === CHECK IF VECTOR DB EXISTED ===
-if os.path.exists(VECTOR_DB_PATH):
+if os.path.exists(VECTOR_DB_DEMO_PATH):
     print("[INFO] Đang tải dữ liệu từ Vector DB đã lưu...")
-    with open(VECTOR_DB_PATH, "rb") as f:
+    with open(VECTOR_DB_DEMO_PATH, "rb") as f:
         vector_store = pickle.load(f)
 else:
     print("[INFO] Lần đầu tiên chạy - Đang tải và embedding dữ liệu...")
 
-    # Home page cua Sapo Retail
-    base_url = "https://support.sapo.vn/sapo-retail"
-    article_links = crawl_data.get_article_links(base_url)
+    url = "https://support.sapo.vn/tim-hieu-ve-don-hang-1"
+    # url = "https://support.sapo.vn/them-moi-san-pham-cho-sapo-pos"
 
-    docs = crawl_data.load_articles(article_links)
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    all_splits = text_splitter.split_documents(docs)
+    loader = crawl_data.WebWithImageLoader(web_paths=(url,))
+    documents = loader.load()
+
+    print(f"[INFO] Đã tải {len(documents)} tài liệu từ URL")
+
+
+    chunker = SapoSupportChunker(chunk_size=1000, chunk_overlap=200)
+    all_splits = chunker.split_documents(documents)
+
+    print(f"[INFO] Đã tách thành {len(all_splits)} đoạn")
+
+    # In thông tin về một số đoạn đầu tiên để kiểm tra
+    for i in range(min(3, len(all_splits))):
+        doc = all_splits[i]
+        print(f"\n--- Đoạn {i + 1} ---")
+        print(f"Metadata: {doc.metadata}")
+        has_images = "image link:" in doc.page_content
+        print(f"Có hình ảnh: {has_images}")
+        if has_images:
+            image_links = [line.strip() for line in doc.page_content.split("\n") if "image link:" in line]
+            print(f"image_links: {image_links}")
+            print(f"Số lượng hình ảnh: {len(image_links)}")
+
 
     # === DATA EMBEDDING + VECTOR DB ===
     # embeddings = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=OPEN_API_KEY,base_url="https://models.inference.ai.azure.com")
@@ -49,7 +62,7 @@ else:
     # ****** vector_store cho ảnh =
 
     # === Lưu Vector DB để sử dụng sau ===
-    with open(VECTOR_DB_PATH, "wb") as f:
+    with open(VECTOR_DB_DEMO_PATH, "wb") as f:
         pickle.dump(vector_store, f)
 
     print("[INFO] Lưu trữ Vector DB thành công!")
@@ -80,11 +93,7 @@ Trong câu trả lời của bạn:
 [image link nếu có]
 
 Chỉ trả lời dựa trên thông tin được cung cấp, không thêm thông tin không có trong văn bản gốc.
-
-Câu hỏi gốc: {question}
-Thông tin chi tiết từ hệ thống: {context}
 """
-
 prompt = PromptTemplate.from_template(template)
 
 # === Choose LLM model ===
@@ -102,8 +111,14 @@ class State(TypedDict):
 
 # === Define application steps (NODE) ===
 def retrieve(state: State):
-    retrieved_docs = vector_store.similarity_search(state["question"])
-    # retrieved_docs = vector_store.similarity_search("question")
+    retrieved_docs = vector_store.similarity_search(state["question"], k=4)
+    # Phân tích các đoạn văn bản này
+    has_images = any("image link:" in doc.page_content for doc in retrieved_docs)
+
+    # Thông báo debug nếu có hình ảnh
+    if has_images:
+        print("[DEBUG] Kết quả retrieved có chứa image links")
+
     return {"context": retrieved_docs}
 
 def generate(state: State):
@@ -124,6 +139,7 @@ response = graph.invoke({"question": "Hướng dẫn tôi xử lý đơn hàng"}
 response = dict(response)
 
 print(response["answer"])
+# print(response)
 
 
 

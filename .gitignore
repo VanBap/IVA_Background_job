@@ -20,3 +20,6 @@ tmp
 # Data
 data
 data/*
+data/hdsd_Sapo.pdf
+data/vector_store.pkl
+data/vector_store_demo.pkl
