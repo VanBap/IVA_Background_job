@@ -4,10 +4,6 @@ import re
 
 
 class SapoSupportChunker:
-    """
-    Bộ chia đoạn văn bản chuyên biệt cho trang Sapo Support,
-    tập trung vào việc giữ nguyên các hướng dẫn theo bước và link hình ảnh
-    """
 
     def __init__(self, chunk_size=1000, chunk_overlap=200):
         self.chunk_size = chunk_size
@@ -22,18 +18,18 @@ class SapoSupportChunker:
         ]
 
     def extract_images_from_text(self, text):
-        """Trích xuất tất cả các link hình ảnh từ text"""
         image_links = []
         for line in text.split("\n"):
-            if "image link:" in line:
+            if "image_link" in line:
                 image_links.append(line.strip())
         return image_links
 
     def split_by_headers(self, text):
         """Tách text thành các đoạn dựa vào các header"""
-        # Chuẩn bị regex pattern để nhận diện các header
-        combined_pattern = "|".join(self.header_patterns)
-        pattern = f"({combined_pattern})"
+
+        # # Chuẩn bị regex pattern để nhận diện các header
+        # combined_pattern = "|".join(self.header_patterns)
+        # pattern = f"({combined_pattern})"
 
         # Tách văn bản bằng regex
         import re
@@ -66,7 +62,7 @@ class SapoSupportChunker:
         Đảm bảo mỗi chunk chứa đúng link hình ảnh liên quan đến nội dung đó
         """
         processed_chunks = []
-        header_to_images = {}
+        header_to_images = {} # Dict: mapping header -> img_urls
 
         # Lần đầu, tạo mapping giữa header và images
         for chunk in chunks:
@@ -78,12 +74,14 @@ class SapoSupportChunker:
                 is_header = any(re.search(pattern, line) for pattern in self.header_patterns)
                 if is_header:
                     current_header = line.strip()
+                    print(f"=== CURRENT HEADER: {current_header}")
 
                 # Thu thập link hình ảnh cho header hiện tại
-                if current_header and "image link:" in line:
+                if current_header and "image_link" in line:
                     if current_header not in header_to_images:
                         header_to_images[current_header] = []
                     header_to_images[current_header].append(line.strip())
+                    print(f"=== header_to_images: {header_to_images}")
 
         # Lần thứ hai, thêm link hình ảnh vào mỗi chunk
         for chunk in chunks:
@@ -97,7 +95,7 @@ class SapoSupportChunker:
                     break
 
             # Kiểm tra xem chunk đã có link hình ảnh chưa
-            has_images = any("image link:" in line for line in chunk_lines)
+            has_images = any("image_link" in line for line in chunk_lines)
 
             # Nếu chunk có header nhưng không có hình ảnh, thêm vào
             if chunk_header and not has_images and chunk_header in header_to_images:
@@ -114,7 +112,7 @@ class SapoSupportChunker:
         # Bước 1: Tách theo headers
         header_sections = self.split_by_headers(text)
 
-        # Bước 2: Tách tiếp các section dài
+        # Bước 2: Tách tiếp các section dài hơn chunksize
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
@@ -135,7 +133,7 @@ class SapoSupportChunker:
                 # Đảm bảo link hình ảnh được giữ nguyên trong các chunk con
                 for i, chunk in enumerate(sub_chunks):
                     # Nếu đây là chunk cuối và chưa có hình ảnh, thêm vào
-                    if i == len(sub_chunks) - 1 and not any("image link:" in line for line in chunk.split("\n")):
+                    if i == len(sub_chunks) - 1 and not any("image_link" in line for line in chunk.split("\n")):
                         for img in images:
                             if img not in chunk:
                                 chunk += f"\n{img}"
@@ -158,10 +156,10 @@ class SapoSupportChunker:
             # Tạo metadata mới cho mỗi chunk
             chunk_metadata = metadata.copy() if metadata else {}
             chunk_metadata["chunk"] = i
-            chunk_metadata["has_images"] = "image link:" in chunk
+            chunk_metadata["has_images"] = "image_link" in chunk
 
             # Đếm số lượng hình ảnh trong chunk
-            image_count = chunk.count("image link:")
+            image_count = chunk.count("image_link")
             chunk_metadata["image_count"] = image_count
 
             documents.append(Document(page_content=chunk, metadata=chunk_metadata))
