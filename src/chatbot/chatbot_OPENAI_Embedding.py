@@ -15,7 +15,7 @@ from langchain_community.vectorstores import FAISS
 import chatbot_crawl_data as crawl_data
 from splitter import SapoSupportChunker
 
-VECTOR_DB_DEMO_PATH = os.getenv("VECTOR_DB_DEMO_PATH")
+VECTOR_DB_DEMO_PATH = os.getenv("VECTOR_DB_DEMO_PATH_OPENAI")
 OPEN_API_KEY = os.getenv("OPEN_API_KEY")
 
 # ===EMBEDDING===

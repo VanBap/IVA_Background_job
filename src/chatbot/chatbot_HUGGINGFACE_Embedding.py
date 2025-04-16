@@ -16,6 +16,7 @@ from langchain_community.vectorstores import FAISS
 import chatbot_crawl_data as crawl_data
 from splitter import SapoSupportChunker
 import time
+import vannhk_template
 # import chatbot_crawl_data as crawl_data
 #
 # from splitter import SapoSupportChunker
@@ -31,7 +32,7 @@ if os.path.exists(VECTOR_DB_DEMO_PATH):
 else:
     print("[INFO] Lần đầu tiên chạy - Đang tải và embedding dữ liệu...")
     start = time.time()
-    # url = "https://support.sapo.vn/tim-hieu-ve-don-hang-1"
+
     # url = "https://support.sapo.vn/ket-noi-kenh-facebook-tren-app-sapo"
     # loader = crawl_data.WebWithImageLoader(web_paths=(url,))
     # documents = loader.load()
@@ -78,35 +79,17 @@ else:
     print("[INFO] Lưu trữ Vector DB thành công!")
 
 
-template = """ 
-Hướng dẫn chi tiết theo yêu cầu người hỏi. Nếu trong văn bản có đường dẫn hình ảnh (image_link), hãy đưa chúng vào câu trả lời để minh họa rõ hơn.
+from vannhk_template import template1, template2
 
-Câu hỏi gốc: {question}
-Thông tin chi tiết từ hệ thống: {context}
 
-Trong câu trả lời của bạn:
-1. Nếu có thông tin về các bước, hãy trình bày theo từng bước rõ ràng
-2. Đối với mỗi bước mà có hình ảnh liên quan (có dòng "image link:"), hãy đưa link ảnh đó vào cuối phần giải thích của bước đó
-3. Định dạng câu trả lời giống như ví dụ minh họa sau:
-
-**Bước 1: [Tên bước]**
-[Giải thích chi tiết]
-![Alt text](image_link) (nếu có)
-
-**Bước 2: [Tên bước]**
-[Giải thích chi tiết]
-![Alt text](image_link) (nếu có)
-
-Chỉ trả lời dựa trên thông tin được cung cấp, không thêm thông tin không có trong văn bản gốc.
-"""
-
-prompt = PromptTemplate.from_template(template)
+prompt = PromptTemplate.from_template(template1)
 
 # === Choose LLM model ===
-llm = ChatOpenAI(model_name="gpt-4o",
+llm = ChatOpenAI(model_name="gpt-4o-mini",
                  api_key=OPEN_API_KEY,
                  base_url="https://models.inference.ai.azure.com",
                  temperature=0.0)
+
 
 # === Define state for application ===
 class State(TypedDict):
@@ -118,7 +101,7 @@ class State(TypedDict):
 # === Define application steps (NODE) ===
 def retrieve(state: State):
     start = time.time()
-    retrieved_docs = vector_store.similarity_search(state["question"], k=7) #default k = 4
+    retrieved_docs = vector_store.similarity_search(state["question"], k=2) #default k = 4
 
     # Check co Image hay khong
     # has_images = any("image_link:" in doc.page_content for doc in retrieved_docs)
@@ -142,6 +125,8 @@ def generate(state: State):
 
     messages = prompt.invoke({"question": state["question"], "context":docs_content})
     response = llm.invoke(messages)
+
+
     end = time.time()
     print(f"[GENERATE TIME] {end - start} seconds")
     return {"answer": response.content}
@@ -152,7 +137,7 @@ graph_builder.add_edge(START, "retrieve")
 graph = graph_builder.compile()
 
 
-response = graph.invoke({"question": "Hướng dẫn kết nối kênh Facebook trên App Sapo"})
+response = graph.invoke({"question": "Hướng dẫn kết nối app Sapo với Sendo"})
 response = dict(response)
 
 # print(f"CONTEXT: {response['context']}")
